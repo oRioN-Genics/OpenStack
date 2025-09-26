@@ -43,3 +43,46 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Flutter tool/cache ---
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+.packages
+.fvm/                        
+
+# --- Builds & artifacts ---
+/build/
+**/build/                    
+**/GeneratedPluginRegistrant.* 
+
+# --- Android ---
+android/.gradle/
+android/local.properties
+**/*.jks
+**/*.keystore
+android/key.properties
+
+# --- iOS/macOS (generated/ephemeral) ---
+ios/Flutter/.last_build_id
+ios/Flutter/ephemeral/
+macos/Flutter/ephemeral/
+
+# --- Windows/Linux desktop (generated/ephemeral) ---
+windows/flutter/ephemeral/
+linux/flutter/ephemeral/
+
+# --- IDEs ---
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json       # keep your shared settings if you want
+!.vscode/extensions.json     # optional to share recommended extensions
+
+# --- Coverage ---
+/coverage/
+
+# --- Env/secrets (if you ever add them) ---
+*.env
+.env*
+
