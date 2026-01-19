@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_stack/domain/entities/recommendation.dart';
 import 'package:open_stack/domain/enums/difficulty_preference.dart';
 import 'package:open_stack/presentation/controllers/feed_controller.dart';
-import 'package:open_stack/presentation/controllers/profile_controller.dart';
 
 class SummaryResultsPage extends ConsumerWidget {
   const SummaryResultsPage({
@@ -35,48 +34,12 @@ class SummaryResultsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feed = ref.watch(feedControllerProvider);
     final summaryText = _buildSummary();
-    final user = ref.watch(profileControllerProvider);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              if (user == null)
-                ElevatedButton(
-                  onPressed: () async {
-                    await ref
-                        .read(profileControllerProvider.notifier)
-                        .signInGitHub();
-                  },
-                  child: const Text('Sign in with GitHub'),
-                )
-              else
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Signed in as ${user.displayName ?? 'GitHub user'}',
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          await ref
-                              .read(profileControllerProvider.notifier)
-                              .signOut();
-                        },
-                        child: const Text('Sign out'),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
           Text(summaryText, style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 12),
           DropdownButtonFormField<DifficultyPreference>(

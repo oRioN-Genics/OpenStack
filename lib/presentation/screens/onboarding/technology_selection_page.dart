@@ -9,6 +9,7 @@ class TechnologySelectionPage extends StatelessWidget {
     required this.onBack,
     required this.onNext,
     required this.onSkip,
+    required this.isLoading,
   });
 
   final Map<String, List<String>> techGroups;
@@ -17,6 +18,7 @@ class TechnologySelectionPage extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onNext;
   final VoidCallback onSkip;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -31,39 +33,44 @@ class TechnologySelectionPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: ListView(
-              children: techGroups.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.key,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    children: techGroups.entries.map((entry) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.key,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: entry.value.map((tech) {
+                                final selected = selectedTechnologies.contains(
+                                  tech,
+                                );
+                                return FilterChip(
+                                  label: Text(tech),
+                                  selected: selected,
+                                  onSelected: (_) => onToggleTechnology(tech),
+                                );
+                              }).toList(),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: entry.value.map((tech) {
-                          final selected = selectedTechnologies.contains(tech);
-                          return FilterChip(
-                            label: Text(tech),
-                            selected: selected,
-                            onSelected: (_) => onToggleTechnology(tech),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
-            ),
           ),
+
           Row(
             children: [
               OutlinedButton(onPressed: onBack, child: const Text('Back')),

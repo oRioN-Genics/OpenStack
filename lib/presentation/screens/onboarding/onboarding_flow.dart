@@ -9,6 +9,7 @@ import 'package:open_stack/presentation/screens/onboarding/domain_selection_page
 import 'package:open_stack/presentation/screens/onboarding/language_selection_page.dart';
 import 'package:open_stack/presentation/screens/onboarding/summary_results_page.dart';
 import 'package:open_stack/presentation/screens/onboarding/technology_selection_page.dart';
+import 'package:open_stack/services/ai/personalization_service.dart';
 
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key});
@@ -25,6 +26,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   final Set<String> _technologies = {};
   String? _confidence;
   String? _contributionStyle;
+  List<String> _languageOptions = [];
+  Map<String, List<String>> _techOptions = {};
+  bool _loadingLanguages = false;
+  bool _loadingTech = false;
+  String _lastDomainsKey = '';
+  String _lastTechKey = '';
 
   DifficultyPreference _difficulty = DifficultyPreference.any;
   final TextEditingController _activityDaysController = TextEditingController(
@@ -162,8 +169,14 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   }
 
   void _next() {
-    if (_step < 4) {
-      setState(() => _step += 1);
+    final next = _step + 1;
+    if (next > 4) return;
+    setState(() => _step = next);
+
+    if (next == 1) {
+      _ensureLanguageSuggestions();
+    } else if (next == 2) {
+      _ensureTechSuggestions();
     }
   }
 
@@ -192,7 +205,71 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     onboarding.setLastCommitWindow(profile.lastCommitWithinDays);
     await onboarding.save();
 
-    await ref.read(feedControllerProvider.notifier).load(profile);
+    await ref
+        .read(feedControllerProvider.notifier)
+        .load(
+          domains: _domains.toList(),
+          languages: _languages.toList(),
+          technologies: _technologies.toList(),
+          confidence: _confidence,
+          contributionStyle: _contributionStyle,
+          difficultyPref: _difficulty,
+          activityDays: days,
+        );
+  }
+
+  Future<void> _ensureLanguageSuggestions() async {
+    final key = (_domains.toList()..sort()).join('|');
+    if (_loadingLanguages ||
+        (key == _lastDomainsKey && _languageOptions.isNotEmpty)) {
+      return;
+    }
+
+    setState(() => _loadingLanguages = true);
+    try {
+      final service = ref.read(personalizationServiceProvider);
+      final result = await service.suggestLanguages(_domains.toList());
+      setState(() {
+        _languageOptions = result.isEmpty ? _defaultLanguages : result;
+        _lastDomainsKey = key;
+      });
+    } catch (e) {
+      setState(() {
+        _languageOptions = _defaultLanguages;
+        _lastDomainsKey = key;
+      });
+    } finally {
+      setState(() => _loadingLanguages = false);
+    }
+  }
+
+  Future<void> _ensureTechSuggestions() async {
+    final domainsKey = (_domains.toList()..sort()).join('|');
+    final langsKey = (_languages.toList()..sort()).join('|');
+    final key = '$domainsKey::$langsKey';
+    if (_loadingTech || (key == _lastTechKey && _techOptions.isNotEmpty)) {
+      return;
+    }
+
+    setState(() => _loadingTech = true);
+    try {
+      final service = ref.read(personalizationServiceProvider);
+      final result = await service.suggestTechnologies(
+        domains: _domains.toList(),
+        languages: _languages.toList(),
+      );
+      setState(() {
+        _techOptions = result.isEmpty ? _techGroups : result;
+        _lastTechKey = key;
+      });
+    } catch (e) {
+      setState(() {
+        _techOptions = _techGroups;
+        _lastTechKey = key;
+      });
+    } finally {
+      setState(() => _loadingTech = false);
+    }
   }
 
   @override
@@ -217,20 +294,24 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
         onSkip: _skipToSummary,
       ),
       1 => LanguageSelectionPage(
-        languageOptions: _languageSuggestions,
+        languageOptions: _languageOptions.isEmpty
+            ? _defaultLanguages
+            : _languageOptions,
         selectedLanguages: _languages,
         onToggleLanguage: _toggleLanguage,
         onBack: _back,
         onNext: _next,
         onSkip: _skipToSummary,
+        isLoading: _loadingLanguages,
       ),
       2 => TechnologySelectionPage(
-        techGroups: _techGroups,
+        techGroups: _techOptions.isEmpty ? _techGroups : _techOptions,
         selectedTechnologies: _technologies,
         onToggleTechnology: _toggleTechnology,
         onBack: _back,
         onNext: _next,
         onSkip: _skipToSummary,
+        isLoading: _loadingTech,
       ),
       3 => ConfidenceStylePage(
         confidenceOptions: _confidenceOptions,

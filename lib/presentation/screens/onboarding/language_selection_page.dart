@@ -9,6 +9,7 @@ class LanguageSelectionPage extends StatelessWidget {
     required this.onBack,
     required this.onNext,
     required this.onSkip,
+    required this.isLoading,
   });
 
   final List<String> languageOptions;
@@ -17,6 +18,7 @@ class LanguageSelectionPage extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onNext;
   final VoidCallback onSkip;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -30,18 +32,21 @@ class LanguageSelectionPage extends StatelessWidget {
             style: TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: languageOptions.map((l) {
-              final selected = selectedLanguages.contains(l);
-              return FilterChip(
-                label: Text(l),
-                selected: selected,
-                onSelected: (_) => onToggleLanguage(l),
-              );
-            }).toList(),
-          ),
+          if (isLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: languageOptions.map((l) {
+                final selected = selectedLanguages.contains(l);
+                return FilterChip(
+                  label: Text(l),
+                  selected: selected,
+                  onSelected: (_) => onToggleLanguage(l),
+                );
+              }).toList(),
+            ),
           const Spacer(),
           Row(
             children: [
