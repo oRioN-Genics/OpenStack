@@ -6,6 +6,8 @@ import 'package:open_stack/domain/entities/skill_profile.dart';
 import 'package:open_stack/presentation/controllers/onboarding_controller.dart';
 import 'package:open_stack/presentation/controllers/profile_controller.dart';
 import 'package:open_stack/presentation/screens/welcome_page.dart';
+import 'package:open_stack/data/local/memory_bookmark_repository.dart';
+import 'package:open_stack/presentation/controllers/issue_detail_controller.dart';
 
 class OpenStackApp extends StatelessWidget {
   const OpenStackApp({super.key});
@@ -18,6 +20,9 @@ class OpenStackApp extends StatelessWidget {
           GitHubAuthRepository(clientId: 'Ov23liJxIBSUlsLV2SgN'),
         ),
         profileRepositoryProvider.overrideWithValue(_MemoryProfileRepository()),
+        bookmarkRepositoryProvider.overrideWithValue(
+          MemoryBookmarkRepository(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

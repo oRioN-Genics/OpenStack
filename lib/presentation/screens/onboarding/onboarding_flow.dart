@@ -10,6 +10,7 @@ import 'package:open_stack/presentation/screens/onboarding/language_selection_pa
 import 'package:open_stack/presentation/screens/onboarding/summary_results_page.dart';
 import 'package:open_stack/presentation/screens/onboarding/technology_selection_page.dart';
 import 'package:open_stack/services/ai/personalization_service.dart';
+import 'package:open_stack/presentation/screens/bookmarks/bookmarks_page.dart';
 
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key});
@@ -339,7 +340,19 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     };
 
     return Scaffold(
-      appBar: AppBar(title: Text(titles[_step])),
+      appBar: AppBar(
+        title: Text(titles[_step]),
+        leading: _step == 4
+            ? IconButton(
+                icon: const Icon(Icons.bookmarks_outlined),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BookmarksPage()),
+                  );
+                },
+              )
+            : null,
+      ),
       body: SafeArea(child: page),
     );
   }

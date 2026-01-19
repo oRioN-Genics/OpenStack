@@ -93,11 +93,10 @@ async function callOpenRouterJson(prompt) {
 }
 
 function buildFallbackQuery({ languages, difficultyPref, activityDays }) {
-  const parts = ["type:issue", "state:open"];
+  const parts = ["is:issue", "is:open"];
 
   if (Array.isArray(languages) && languages.length > 0) {
-    const joined = languages.map((l) => `language:${l}`).join(" OR ");
-    parts.push(`(${joined})`);
+    languages.forEach((lang) => parts.push(`language:${lang}`));
   }
 
   if (difficultyPref === "goodFirst") {
@@ -255,28 +254,53 @@ app.post("/ai/search", async (req, res) => {
 
   let query = "";
   try {
+    const cutoff = new Date(Date.now() - activityDays * 86400000);
+    const isoDate = cutoff.toISOString().substring(0, 10);
     const prompt = `
-Return ONLY JSON: {"query":"..."}.
-Build a GitHub search query for open issues.
-Inputs:
-Domains: ${JSON.stringify(domains)}
-Languages: ${JSON.stringify(languages)}
-Technologies: ${JSON.stringify(technologies)}
-Confidence: ${confidence || ""}
-Contribution preference: ${contributionStyle || ""}
-Difficulty: ${difficultyPref}
-Activity window days: ${activityDays}
+      Return ONLY JSON: {"query":"..."}.
+      Build a GitHub search query for open issues.
+      Inputs:
+      Domains: ${JSON.stringify(domains)}
+      Languages: ${JSON.stringify(languages)}
+      Technologies: ${JSON.stringify(technologies)}
+      Confidence: ${confidence || ""}
+      Contribution preference: ${contributionStyle || ""}
+      Difficulty: ${difficultyPref}
+      Activity window days: ${activityDays}
 
-Constraints:
-- Always include: type:issue state:open
-- Include updated:>=YYYY-MM-DD for activity window
-- If difficulty is goodFirst/helpWanted, include label
-- Keep query concise
+      CRITICAL GitHub Search Syntax Rules:
+      - ALWAYS include: is:issue is:open
+      - For languages, use: language:Python language:JavaScript (space-separated, NOT OR)
+      - For labels, use exact format: label:"good first issue" OR label:"help wanted"
+      - For activity: updated:>=${isoDate}
+      - For technologies in body: ${technologies.length > 0 ? technologies.map((t) => `"${t}"`).join(" OR ") : ""}
+      - NEVER use: repo:* or repo:language() or involves:
+      - Keep it simple and valid
+      
+      Example valid query: is:issue is:open language:Python label:"good first issue" updated:>=2025-01-01
     `.trim();
 
     const json = await callOpenRouterJson(prompt);
-    query = json.query || "";
-  } catch {
+    query = (json.query || "").trim();
+
+    // Clean up common AI mistakes
+    query = query
+      .replace(/type:issue/g, "is:issue")
+      .replace(/state:open/g, "is:open")
+      .replace(/\brepo:\*\b/g, "")
+      .replace(/\brepo:language\([^)]+\)/g, "")
+      .replace(/\binvolves:[^\s)]+/gi, "")
+      .replace(/label:goodFirst\b/g, 'label:"good first issue"')
+      .replace(/label:helpWanted\b/g, 'label:"help wanted"')
+      .replace(/label:first-timers\b/g, 'label:"first-timers-only"')
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Validate: ensure basic required parts
+    if (!query.includes("is:issue")) query = "is:issue " + query;
+    if (!query.includes("is:open")) query = "is:open " + query;
+  } catch (err) {
+    console.error("AI query generation error:", err?.message);
     query = "";
   }
 
@@ -288,50 +312,60 @@ Constraints:
     });
   }
 
-  const ghUrl = "https://api.github.com/search/issues";
-  const ghRes = await axios.get(ghUrl, {
-    headers: GH_HEADERS,
-    params: {
-      q: query,
-      per_page: perPage,
-      sort: "updated",
-      order: "desc",
-    },
-  });
+  console.log("Final GitHub query:", query); // Debug log
 
-  const items = ghRes.data.items || [];
-  const issues = items.map(parseIssue);
+  try {
+    const ghUrl = "https://api.github.com/search/issues";
+    const ghRes = await axios.get(ghUrl, {
+      headers: GH_HEADERS,
+      params: {
+        q: query,
+        per_page: perPage,
+        sort: "updated",
+        order: "desc",
+      },
+    });
 
-  const repoIds = [...new Set(issues.map((i) => i.repoId))];
-  const repoMap = {};
-  await Promise.all(
-    repoIds.map(async (id) => {
-      const [owner, name] = id.split("/");
-      if (!owner || !name) return;
-      try {
-        repoMap[id] = await fetchRepo(owner, name);
-      } catch {
-        repoMap[id] = null;
-      }
-    }),
-  );
+    const items = ghRes.data.items || [];
+    const issues = items.map(parseIssue);
 
-  const results = [];
-  for (const issue of issues) {
-    const repo = repoMap[issue.repoId];
-    if (!repo) continue;
+    const repoIds = [...new Set(issues.map((i) => i.repoId))];
+    const repoMap = {};
+    await Promise.all(
+      repoIds.map(async (id) => {
+        const [owner, name] = id.split("/");
+        if (!owner || !name) return;
+        try {
+          repoMap[id] = await fetchRepo(owner, name);
+        } catch {
+          repoMap[id] = null;
+        }
+      }),
+    );
 
-    const summary = await summarizeIssue(issue);
+    const results = [];
+    for (const issue of issues) {
+      const repo = repoMap[issue.repoId];
+      if (!repo) continue;
 
-    results.push({
-      issue,
-      repo,
-      summary,
-      score: 0,
+      const summary = await summarizeIssue(issue);
+
+      results.push({
+        issue,
+        repo,
+        summary,
+        score: 0,
+      });
+    }
+
+    res.json({ query, results });
+  } catch (error) {
+    console.error("GitHub API error:", error?.response?.data || error?.message);
+    res.status(error?.response?.status || 500).json({
+      error: "Failed to search GitHub issues",
+      details: error?.response?.data?.message || error?.message,
     });
   }
-
-  res.json({ query, results });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
