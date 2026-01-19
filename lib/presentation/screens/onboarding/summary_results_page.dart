@@ -20,7 +20,7 @@ class SummaryResultsPage extends ConsumerWidget {
     required this.activityDaysController,
     required this.onDifficultyChanged,
     required this.onSearch,
-    required this.onBack,
+    required this.onEdit,
   });
 
   final List<String> domains;
@@ -32,7 +32,7 @@ class SummaryResultsPage extends ConsumerWidget {
   final TextEditingController activityDaysController;
   final void Function(DifficultyPreference value) onDifficultyChanged;
   final Future<void> Function() onSearch;
-  final VoidCallback onBack;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,7 +62,21 @@ class SummaryResultsPage extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Your summary', style: theme.textTheme.titleMedium),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Your summary',
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Edit choices',
+                                icon: const Icon(Icons.tune),
+                                onPressed: onEdit,
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 6),
                           Text(summaryText, style: theme.textTheme.bodySmall),
                           const SizedBox(height: 12),
@@ -157,10 +171,6 @@ class SummaryResultsPage extends ConsumerWidget {
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              OutlinedButton(
-                                onPressed: onBack,
-                                child: const Text('Back'),
-                              ),
                               const Spacer(),
                               ElevatedButton(
                                 onPressed: () => onSearch(),

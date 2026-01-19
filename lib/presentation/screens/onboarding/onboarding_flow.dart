@@ -11,6 +11,7 @@ import 'package:open_stack/presentation/screens/onboarding/summary_results_page.
 import 'package:open_stack/presentation/screens/onboarding/technology_selection_page.dart';
 import 'package:open_stack/services/ai/personalization_service.dart';
 import 'package:open_stack/presentation/screens/bookmarks/bookmarks_page.dart';
+import 'package:open_stack/presentation/screens/onboarding/adjustments_sheet.dart';
 
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key});
@@ -191,6 +192,52 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     setState(() => _step = 4);
   }
 
+  Future<void> _openAdjustmentsSheet() async {
+    final data = await showModalBottomSheet<AdjustmentsData>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) {
+        return AdjustmentsSheet(
+          domainOptions: _domainOptions,
+          maxDomains: _maxDomains,
+          initialDomains: _domains,
+          languageOptions:
+              _languageOptions.isEmpty ? _defaultLanguages : _languageOptions,
+          initialLanguages: _languages,
+          techGroups: _techOptions.isEmpty ? _techGroups : _techOptions,
+          initialTechnologies: _technologies,
+          confidenceOptions: _confidenceOptions,
+          contributionOptions: _contributionOptions,
+          initialConfidence: _confidence,
+          initialContributionStyle: _contributionStyle,
+          initialDifficulty: _difficulty,
+          initialActivityDays:
+              int.tryParse(_activityDaysController.text.trim()) ?? 180,
+        );
+      },
+    );
+
+    if (data == null) return;
+    setState(() {
+      _domains
+        ..clear()
+        ..addAll(data.domains);
+      _languages
+        ..clear()
+        ..addAll(data.languages);
+      _technologies
+        ..clear()
+        ..addAll(data.technologies);
+      _confidence = data.confidence;
+      _contributionStyle = data.contributionStyle;
+      _difficulty = data.difficulty;
+      _activityDaysController.text = data.activityDays.toString();
+    });
+    await _ensureLanguageSuggestions();
+    await _ensureTechSuggestions();
+  }
+
   Future<void> _runSearch() async {
     final days = int.tryParse(_activityDaysController.text.trim()) ?? 180;
 
@@ -335,7 +382,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
         activityDaysController: _activityDaysController,
         onDifficultyChanged: _setDifficulty,
         onSearch: _runSearch,
-        onBack: _back,
+        onEdit: _openAdjustmentsSheet,
       ),
     };
 
