@@ -10,9 +10,10 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
+const OPENROUTER_MODEL =
+  process.env.OPENROUTER_MODEL || "mistralai/mistral-7b-instruct";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 const GH_HEADERS = {
   Accept: "application/vnd.github+json",
@@ -52,21 +53,41 @@ function extractJson(text) {
   }
 }
 
-async function callGeminiJson(prompt) {
-  if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is missing.");
+async function callOpenRouterJson(prompt) {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("OPENROUTER_API_KEY is missing.");
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-  const res = await axios.post(url, {
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.4 },
-  });
+  const url = "https://openrouter.ai/api/v1/chat/completions";
+  const res = await axios.post(
+    url,
+    {
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: "system", content: "Return strictly valid JSON." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.4,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost",
+        "X-Title": "OpenStack MVP",
+      },
+    },
+  );
 
-  const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const text = res.data?.choices?.[0]?.message?.content || "";
+  if (!text) {
+    console.error("OpenRouter returned empty text.");
+  }
+
   const parsed = extractJson(text);
   if (!parsed) {
-    throw new Error("Gemini did not return valid JSON.");
+    console.error("OpenRouter raw response:", text);
+    throw new Error("OpenRouter did not return valid JSON.");
   }
   return parsed;
 }
@@ -150,7 +171,7 @@ Body: ${issue.body}
   `.trim();
 
   try {
-    const json = await callGeminiJson(prompt);
+    const json = await callOpenRouterJson(prompt);
     return {
       tldr: json.tldr || issue.title,
       firstPrChecklist: Array.isArray(json.firstPrChecklist)
@@ -181,12 +202,13 @@ Return 8-12 relevant programming languages.
   `.trim();
 
   try {
-    const json = await callGeminiJson(prompt);
+    const json = await callOpenRouterJson(prompt);
     const languages = Array.isArray(json.languages)
       ? json.languages
       : DEFAULT_LANGUAGES;
     res.json({ languages });
-  } catch {
+  } catch (err) {
+    console.error("AI /languages error:", err?.message || err);
     res.json({ languages: DEFAULT_LANGUAGES });
   }
 });
@@ -201,10 +223,11 @@ Provide 3-6 tools per group.
   `.trim();
 
   try {
-    const json = await callGeminiJson(prompt);
+    const json = await callOpenRouterJson(prompt);
     const groups = json.groups || DEFAULT_TECH_GROUPS;
     res.json({ groups });
-  } catch {
+  } catch (err) {
+    console.error("AI /tools error:", err?.message || err);
     res.json({ groups: DEFAULT_TECH_GROUPS });
   }
 });
@@ -251,7 +274,7 @@ Constraints:
 - Keep query concise
     `.trim();
 
-    const json = await callGeminiJson(prompt);
+    const json = await callOpenRouterJson(prompt);
     query = json.query || "";
   } catch {
     query = "";
