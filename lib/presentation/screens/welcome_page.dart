@@ -23,35 +23,73 @@ class WelcomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Welcome to Open Stack!',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => _handleSignIn(context, ref),
-                    child: const Text('Sign in with GitHub'),
-                  ),
-                ],
-              ),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF7FAFC), Color(0xFFEFF6FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: TextButton(
-                onPressed: () => _skipForNow(context),
-                child: const Text('Skip for now'),
+          ),
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Open Stack',
+                            style: theme.textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Find beginner-friendly open source issues faster.',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _handleSignIn(context, ref),
+                              icon: const Icon(Icons.code),
+                              label: const Text('Sign in with GitHub'),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () => _skipForNow(context),
+                              child: const Text('Continue without sign in'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+              Positioned(
+                right: 20,
+                bottom: 16,
+                child: Text(
+                  'Built for first-time contributors',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

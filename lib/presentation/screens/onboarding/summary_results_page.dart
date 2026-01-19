@@ -38,57 +38,147 @@ class SummaryResultsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feed = ref.watch(feedControllerProvider);
     final summaryText = _buildSummary();
+    final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF7FAFC), Color(0xFFEFF6FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(summaryText, style: const TextStyle(fontSize: 16)),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<DifficultyPreference>(
-            value: difficulty,
-            items: const [
-              DropdownMenuItem(
-                value: DifficultyPreference.any,
-                child: Text('Any'),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Your summary', style: theme.textTheme.titleMedium),
+                          const SizedBox(height: 6),
+                          Text(summaryText, style: theme.textTheme.bodySmall),
+                          const SizedBox(height: 12),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              if (constraints.maxWidth < 520) {
+                                return Column(
+                                  children: [
+                                    DropdownButtonFormField<
+                                        DifficultyPreference>(
+                                      value: difficulty,
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: DifficultyPreference.any,
+                                          child: Text('Any'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: DifficultyPreference.goodFirst,
+                                          child: Text('Good first issue'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: DifficultyPreference.helpWanted,
+                                          child: Text('Help wanted'),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        if (value == null) return;
+                                        onDifficultyChanged(value);
+                                      },
+                                      decoration: const InputDecoration(
+                                        labelText: 'Difficulty label',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      controller: activityDaysController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Activity days',
+                                        hintText: '180',
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: DropdownButtonFormField<
+                                        DifficultyPreference>(
+                                      value: difficulty,
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: DifficultyPreference.any,
+                                          child: Text('Any'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: DifficultyPreference.goodFirst,
+                                          child: Text('Good first issue'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: DifficultyPreference.helpWanted,
+                                          child: Text('Help wanted'),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        if (value == null) return;
+                                        onDifficultyChanged(value);
+                                      },
+                                      decoration: const InputDecoration(
+                                        labelText: 'Difficulty label',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  SizedBox(
+                                    width: 180,
+                                    child: TextField(
+                                      controller: activityDaysController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Activity days',
+                                        hintText: '180',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              OutlinedButton(
+                                onPressed: onBack,
+                                child: const Text('Back'),
+                              ),
+                              const Spacer(),
+                              ElevatedButton(
+                                onPressed: () => onSearch(),
+                                child: const Text('Find issues'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Recommended issues', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                ],
               ),
-              DropdownMenuItem(
-                value: DifficultyPreference.goodFirst,
-                child: Text('Good first issue'),
-              ),
-              DropdownMenuItem(
-                value: DifficultyPreference.helpWanted,
-                child: Text('Help wanted'),
-              ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              onDifficultyChanged(value);
-            },
-            decoration: const InputDecoration(labelText: 'Difficulty label'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: activityDaysController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Activity window (days)',
-              hintText: '180',
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              OutlinedButton(onPressed: onBack, child: const Text('Back')),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: () => onSearch(),
-                child: const Text('Find issues'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
           Expanded(
             child: feed.when(
               data: (items) => _ResultsList(items: items),
@@ -125,6 +215,7 @@ class _ResultsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     if (items.isEmpty) {
       return const Center(child: Text('No results yet. Run a search.'));
     }
@@ -166,10 +257,7 @@ class _ResultsList extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           '${repo.owner}/${repo.name}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                          style: theme.textTheme.titleMedium,
                         ),
                       ),
                       IconButton(
@@ -190,8 +278,8 @@ class _ResultsList extends ConsumerWidget {
 
                   const SizedBox(height: 4),
                   Text(
-                    'Why recommended: ${repo.stars} stars, updated $daysSince days ago',
-                    style: const TextStyle(fontSize: 12),
+                    '${repo.stars} stars - Updated $daysSince days ago',
+                    style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
                   ...recs.map((rec) {
@@ -206,7 +294,7 @@ class _ResultsList extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(rec.issue.title),
-                          Text(label, style: const TextStyle(fontSize: 12)),
+                          Text(label, style: theme.textTheme.bodySmall),
                         ],
                       ),
                     );
@@ -244,9 +332,9 @@ class _ResultsList extends ConsumerWidget {
   }
 
   void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openRepo(BuildContext context, String url) async {
