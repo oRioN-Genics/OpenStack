@@ -7,7 +7,7 @@ import 'package:open_stack/domain/entities/skill_profile.dart';
 import 'package:open_stack/presentation/controllers/onboarding_controller.dart';
 import 'package:open_stack/presentation/controllers/profile_controller.dart';
 import 'package:open_stack/presentation/screens/welcome_page.dart';
-import 'package:open_stack/data/local/memory_bookmark_repository.dart';
+import 'package:open_stack/data/local/sqlite_bookmark_repository.dart';
 import 'package:open_stack/presentation/controllers/issue_detail_controller.dart';
 
 class OpenStackApp extends StatelessWidget {
@@ -27,7 +27,7 @@ class OpenStackApp extends StatelessWidget {
         ),
         profileRepositoryProvider.overrideWithValue(_MemoryProfileRepository()),
         bookmarkRepositoryProvider.overrideWithValue(
-          MemoryBookmarkRepository(),
+          SqliteBookmarkRepository(),
         ),
       ],
       child: MaterialApp(
